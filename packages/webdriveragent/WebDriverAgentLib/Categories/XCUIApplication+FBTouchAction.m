@@ -190,8 +190,9 @@ static BOOL FBIsFinitePoint(CGPoint point)
 #if TARGET_OS_WATCH
   // No UIInterfaceOrientation on watchOS; the panel never rotates, so the display alone
   // identifies where the event goes. `initWithName:displayID:` is XCTest's newer API and an
-  // older watch runtime answers it with doesNotRecognizeSelector, so keep the plain one as
-  // the fallback - a watch has a single display, so targeting it explicitly is redundant there.
+  // older watch runtime answers it with doesNotRecognizeSelector (measured present on 26.5 and
+  // 27.0; the spike suite logs it each run), so keep the plain one as the fallback - a watch has
+  // a single display, so targeting it explicitly is redundant there.
   (void)interfaceOrientation;
   XCSynthesizedEventRecord *event = [XCSynthesizedEventRecord instancesRespondToSelector:@selector(initWithName:displayID:)]
     ? [[XCSynthesizedEventRecord alloc] initWithName:name

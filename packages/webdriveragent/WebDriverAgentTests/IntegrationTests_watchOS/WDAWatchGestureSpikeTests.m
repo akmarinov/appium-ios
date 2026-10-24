@@ -115,6 +115,16 @@ static BOOL WDAWatchGestureRuntimeIsMeasured(void)
         [target respondsToSelector:selector] ? @"YES" : @"NO");
 }
 
+/// Class-object form of the probe above: for a `Class`, `-respondsToSelector:` answers whether the
+/// *class* responds (i.e. a class method), so instance initialisers have to go through
+/// `+instancesRespondToSelector:` - which is also exactly what the production fallback asks.
+- (void)reportOptionalInstanceSelector:(NSString *)selectorName onClass:(Class)cls
+{
+  SEL selector = NSSelectorFromString(selectorName);
+  NSLog(@"SPIKE[instances respond %@ on %@] %@", selectorName, NSStringFromClass(cls),
+        [cls instancesRespondToSelector:selector] ? @"YES" : @"NO");
+}
+
 /// Asserts the *weaker* contract: the selector must be dispatched, and a rejection naming the
 /// element type counts as dispatch. `handleSetValue:` reaches `adjustToNormalizedSliderPosition:`
 /// for a slider element, but the fixture has no slider to give it - SwiftUI exposes no `Slider` on
@@ -228,6 +238,20 @@ static BOOL WDAWatchGestureRuntimeIsMeasured(void)
        ]) {
     [self reportOptionalSelector:selectorName onTarget:button];
   }
+
+  // Which event-record initialiser the synthesizer will actually get. `FBW3CActionsSynthesizer`
+  // and `XCUIApplication+FBTouchAction` prefer `initWithName:displayID:` and fall back to
+  // `initWithName:` when the runtime does not answer it, so the fallback is dead code wherever the
+  // first line logs YES and load-bearing wherever it logs NO. Logged, not asserted: either answer
+  // is a working configuration by construction, so pinning one would turn a defensive branch into a
+  // requirement. The class is named through the runtime rather than imported: that is how the
+  // production guard sees it too, and the test target has no private XCTest header on its path.
+  Class eventRecord = NSClassFromString(@"XCSynthesizedEventRecord");
+  XCTAssertTrue(nil != eventRecord,
+                @"XCSynthesizedEventRecord is absent from this runtime, which means W3C action "
+                @"synthesis cannot work here at all - not what the watch build assumes");
+  [self reportOptionalInstanceSelector:@"initWithName:displayID:" onClass:eventRecord];
+  [self reportOptionalInstanceSelector:@"initWithName:" onClass:eventRecord];
 }
 
 /// Isolated on purpose: this selector takes a velocity on an `XCUIElement`, the same family whose
